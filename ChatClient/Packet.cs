@@ -21,7 +21,9 @@ namespace ChatApplication
         ElectionOK,
         Coordinator,
         IsAlive,
-        AmAlive
+        AmAlive,
+        RaRequest,
+        RaOk
     }
 
     public class Packet

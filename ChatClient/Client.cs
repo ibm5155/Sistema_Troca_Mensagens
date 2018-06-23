@@ -19,56 +19,99 @@ namespace ChatClient
 
     public partial class Client : Form
     {
-
-        private struct ClientStruct
+        #region External Vars
+        private List<ClientData> clientList
         {
-            public EndPoint endPoint;
-            public string name;
-            public string IP;
-            public string Porta;
-            public int Id;
+            set => Global.clientList = value;
+            get => Global.clientList;
         }
 
-        private List<ClientStruct> clientList = new List<ClientStruct>();
-
-        #region Private Members
-
-        // Request Close Window
-        // Client socket
-        private Socket clientSocket;
+        private Socket clientSocket {
+            set => Global.clientSocket = value;
+            get => Global.clientSocket;
+        }
 
         // Client name
-        private string name;
+        private string name
+        {
+            set => Global.name = value;
+            get => Global.name;
+        }
 
-        private bool clientLeader = false;
-        private int myId = -1;
-        private int ElectionOKCount = 0;
-        private bool leaderAlive = false;
-        private int leaderId = -1;
+        private bool clientLeader
+        {
+            set => Global.clientLeader = value;
+            get => Global.clientLeader;
+        }
+        private int myId
+        {
+            set => Global.myId = value;
+            get => Global.myId;
+        }
+        private int ElectionOKCount
+        {
+            set => Global.ElectionOKCount = value;
+            get => Global.ElectionOKCount;
+        }
+        private bool leaderAlive
+        {
+            set => Global.leaderAlive = value;
+            get => Global.leaderAlive;
+        }
+        private int leaderId
+        {
+            set => Global.leaderId = value;
+            get => Global.leaderId;        
+        }
 
         // Server End Point
-        private EndPoint epServer;
-        EndPoint epClient;
+        public EndPoint epServer
+        {
+            set => Global.epServer = value;
+            get => Global.epServer;
+        }
+        private EndPoint epClient
+        {
+            set => Global.epClient = value;
+            get => Global.epClient;
+        }
 
         // Data stream
-        private byte[] dataStream = new byte[1024];
+        private static byte[] dataStream
+        {
+            set => Global.dataStream = value;
+            get => Global.dataStream;
+        }
+
+        private string _lastString;
+        public string GetNewLineLog
+        {
+            set {
+                    _lastString = value;
+                    DisplayMessage(value);
+                }
+            get => _lastString;
+        }
 
         // Display message delegate
-        private delegate void DisplayMessageDelegate(string message);
-        private DisplayMessageDelegate displayMessageDelegate = null;
-
         #endregion
 
+        #region Fases
+            FaseI faseI;
+            FaseII faseII;
+        #endregion
         #region Constructor
 
         public Client()
         {
             InitializeComponent();
-            var all =  new ClientStruct();
+            faseI = new FaseI(this);
+ //           faseII = new FaseII();
+            var all =  new ClientData();
             all.name = "All";
             clientList.Add(all);
             userslistbox.Items.Add(all.name);
-            CheckLeaderThread();
+            faseI.CheckLeaderThread();
         }
 
         #endregion
@@ -78,7 +121,6 @@ namespace ChatClient
         private void Client_Load(object sender, EventArgs e)
         {
             // Initialise delegate
-            this.displayMessageDelegate = new DisplayMessageDelegate(this.DisplayMessage);
         }
 
         private void btnSend_Click(object sender, EventArgs e)
@@ -87,7 +129,7 @@ namespace ChatClient
             {
                 if (clientLeader == false)
                 {
-                    this.Invoke(this.displayMessageDelegate, new object[] { "Você não é o lider então não poderá enviar reequisições" });
+                    GetNewLineLog =  "Você não é o lider então não poderá enviar reequisições";
                     return;
                 }
                 // Initialise a packet object to store the data to be sent
@@ -106,13 +148,13 @@ namespace ChatClient
                     sendData.ReadData["ChatMessage"] = this.name + ":" + sendData.ReadData["ChatMessage"];
                     for (int id=1; id < clientList.Count(); id++)
                     {
-                            client = CreateIPEndPoint(clientList[id].IP);
+                            client = IpData.CreateIPEndPoint(clientList[id].IP);
                             // Initialise the EndPoint for the client
                             epClient = (EndPoint)client;
                             byteData = sendData.GetDataStream();
                             clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
                     }
-                    this.Invoke(this.displayMessageDelegate, new object[] { sendData.ReadData["ChatMessage"] });
+                    GetNewLineLog =  sendData.ReadData["ChatMessage"] as string;
                 }
                 else
                 {
@@ -122,7 +164,7 @@ namespace ChatClient
                     {
                         if(clientList[id].name == ToStr.Text)
                         {
-                            client = CreateIPEndPoint(clientList[id].IP);
+                            client = IpData.CreateIPEndPoint(clientList[id].IP);
                         }
                     }
                     if(client != null)
@@ -132,7 +174,7 @@ namespace ChatClient
                         sendData.ReadData["ChatMessage"] = "*" + this.name + ":" + sendData.ReadData["ChatMessage"];
                         byte[] byteData = sendData.GetDataStream();
                         clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
-                        this.Invoke(this.displayMessageDelegate, new object[] { sendData.ReadData["ChatMessage"] });
+                        GetNewLineLog = sendData.ReadData["ChatMessage"] as string;
                     }
                 }
 
@@ -204,9 +246,9 @@ namespace ChatClient
                 // Send data to server
                 clientSocket.BeginSendTo(data, 0, data.Length, SocketFlags.None, epServer, new AsyncCallback(this.SendData), null);
 
-                this.dataStream = new byte[1024];
+                dataStream = new byte[1024];
                 // Begin listening for broadcasts
-                clientSocket.BeginReceiveFrom(this.dataStream, 0, this.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(this.ReceiveData), null);
+                clientSocket.BeginReceiveFrom(dataStream, 0, dataStream.Length, SocketFlags.None, ref Global.epServer, new AsyncCallback(this.ReceiveData), null);
             }
             catch (Exception ex)
             {
@@ -223,7 +265,7 @@ namespace ChatClient
 
         #region Send And Receive
 
-        private void SendData(IAsyncResult ar)
+        public void SendData(IAsyncResult ar)
         {
             try
             {
@@ -246,12 +288,12 @@ namespace ChatClient
 
                     // Initialise a packet object to store the received data
 
-                    Packet receivedData = new Packet(this.dataStream);
+                    Packet receivedData = new Packet(dataStream);
 
                     DataIdentifier ChatDataIdentifier = receivedData.GetDataIdentifier;
                     if (ChatDataIdentifier == DataIdentifier.OK)
                     {
-                        this.Invoke(this.displayMessageDelegate, new object[] { "You Logged in" });
+                        GetNewLineLog = "You Logged in";
                     }
                     else if (ChatDataIdentifier == DataIdentifier.DuplicateId)
                     {
@@ -270,8 +312,8 @@ namespace ChatClient
                         int chatId = receivedData.GetInt("ChatId");
                         if (myId > chatId)
                         {
-                            SendOkElection(chatId);
-                            StartElection();
+                            faseI.SendOkElection(chatId);
+                            faseI.StartElection();
                         }
                         else
                         {
@@ -282,7 +324,7 @@ namespace ChatClient
                     else if (ChatDataIdentifier == DataIdentifier.ElectionOK)
                     {
                         ElectionOKCount++;
-                        this.Invoke(this.displayMessageDelegate, new object[] { receivedData.ReadData["ChatName"] + " tem nivel maior" });
+                        GetNewLineLog =  receivedData.ReadData["ChatName"] as string + " tem nivel maior";
                         receivedData.ReadData["ChatName"] = name;
                         clientLeader = false;
 
@@ -293,13 +335,13 @@ namespace ChatClient
                         int chatId = receivedData.GetInt("ChatId");
                         if (myId > chatId)
                         {
-                            this.Invoke(this.displayMessageDelegate, new object[] { receivedData.ReadData["ChatName"] + " acha que é o coordenador mas eu tenho id maior, resolvendo isso" });
+                            GetNewLineLog = receivedData.ReadData["ChatName"] as string + " acha que é o coordenador mas eu tenho id maior, resolvendo isso";
                             receivedData.ReadData["ChatName"] = name;
-                            SendOkElection(chatId);
+                            faseI.SendOkElection(chatId);
                         }
                         else
                         {
-                            this.Invoke(this.displayMessageDelegate, new object[] { receivedData.ReadData["ChatName"] + " é o coordenador" });
+                            GetNewLineLog =  receivedData.ReadData["ChatName"] as string + " é o coordenador";
                             clientLeader = false;
                             updatetxtlider("Escravo");
                             receivedData.ReadData["ChatName"] = name;
@@ -309,20 +351,20 @@ namespace ChatClient
                     else if (ChatDataIdentifier == DataIdentifier.AmAlive)
                     {
                         leaderAlive = true;
-                        this.Invoke(this.displayMessageDelegate, new object[] { receivedData.ReadData["ChatName"] + " Lider está vivo " });
+                        GetNewLineLog = receivedData.ReadData["ChatName"] as string + " Lider está vivo ";
                         receivedData.ReadData["ChatName"] = name;
                     }
                     else if (ChatDataIdentifier == DataIdentifier.IsAlive)
                     {
                         leaderAlive = true;
-                        this.Invoke(this.displayMessageDelegate, new object[] { receivedData.ReadData["ChatName"] + " Lider está vivo " });
+                        GetNewLineLog =  receivedData.ReadData["ChatName"] as string + " Lider está vivo ";
                         receivedData.ReadData["ChatName"] = name;
-                        SendIsAlive(receivedData.GetInt("ChatId"));
+                        faseI.SendIsAlive(receivedData.GetInt("ChatId"));
                     }
 
                     else if (ChatDataIdentifier == DataIdentifier.UpdateList)
                     {
-                        var c = new ClientStruct();
+                        var c = new ClientData();
                         c.name = receivedData.ReadData["ChatName"] as string;
                         c.IP = receivedData.ReadData["ChatIp"] as string;
                         c.Id = (receivedData.GetInt("ChatId"));
@@ -336,18 +378,18 @@ namespace ChatClient
                     {
                         // Update display through a delegate
                         if (receivedData.ReadData["ChatMessage"] != null)
-                            this.Invoke(this.displayMessageDelegate, new object[] { receivedData.ReadData["ChatMessage"] });
+                            GetNewLineLog =  receivedData.ReadData["ChatMessage"] as string;
                     }
 
 
 
                     // Reset data stream
-                    this.dataStream = new byte[1024];
+                    dataStream = new byte[1024];
 
                     //check if its a new login
                     if (ChatDataIdentifier == DataIdentifier.LogIn)
                     {
-                        ClientStruct c = new ClientStruct();
+                        var c = new ClientData();
                         c.name = receivedData.ReadData["ChatName"] as string;
                         c.IP = receivedData.ReadData["ChatIp"] as string;
                         c.Id = receivedData.GetInt("ChatId");
@@ -367,7 +409,7 @@ namespace ChatClient
                         refresh_list();
                     }
                     // Continue listening for broadcasts
-                    clientSocket.BeginReceiveFrom(this.dataStream, 0, this.dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(this.ReceiveData), null);
+                    clientSocket.BeginReceiveFrom(dataStream, 0, dataStream.Length, SocketFlags.None, ref Global.epServer, new AsyncCallback(this.ReceiveData), null);
                 }
                 catch (ObjectDisposedException)
                 { }
@@ -384,20 +426,23 @@ namespace ChatClient
 
         #region Other Methods
 
-        private void DisplayMessage(string messge)
+        public void DisplayMessage(string messge)
         {
-            rtxtConversation.Text += messge + Environment.NewLine;
+            Invoke((MethodInvoker)delegate
+            {
+                rtxtConversation.Text += messge + Environment.NewLine;
+            });
         }
 
         #endregion
 
-        private void userslistbox_Click(object sender, EventArgs e)
+        public void userslistbox_Click(object sender, EventArgs e)
         {
             var x = sender as ListBox;
             ToStr.Text = (string)x.SelectedItem;
         }
 
-        private void refresh_list()
+        public void refresh_list()
         {
             var lu = new string[clientList.Count];
             for (int i=0; i < clientList.Count(); i++)
@@ -411,238 +456,6 @@ namespace ChatClient
             }));
         }
 
-        // Handles IPv4 and IPv6 notation.
-        public static IPEndPoint CreateIPEndPoint(string endPoint)
-        {
-            string[] ep = endPoint.Split(':');
-            if (ep.Length < 2) throw new FormatException("Invalid endpoint format");
-            IPAddress ip;
-            if (ep.Length > 2)
-            {
-                if (!IPAddress.TryParse(string.Join(":", ep, 0, ep.Length - 1), out ip))
-                {
-                    throw new FormatException("Invalid ip-adress");
-                }
-            }
-            else
-            {
-                if (!IPAddress.TryParse(ep[0], out ip))
-                {
-                    throw new FormatException("Invalid ip-adress");
-                }
-            }
-            int port;
-            if (!int.TryParse(ep[ep.Length - 1], NumberStyles.None, NumberFormatInfo.CurrentInfo, out port))
-            {
-                throw new FormatException("Invalid port");
-            }
-            return new IPEndPoint(ip, port);
-        }
-
-        #region  eleição
-
-        private bool eleicaorodando = false;
-        private void SendOkElection(int usrid)
-        {
-            try
-            {
-                // Initialise a packet object to store the data to be sent
-                Packet sendData = new Packet();
-                sendData.ReadData.Add("ChatName", this.name);
-                sendData.ReadData.Add("ChatDataIdentifier", DataIdentifier.ElectionOK);
-                sendData.ReadData.Add("ChatId", myId);
-                string usrname = "";
-
-                // Get packet as byte array
-                int id = 1;
-                IPEndPoint client = null;
-                for (; id < clientList.Count(); id++)
-                {
-                    if (clientList[id].Id == usrid)
-                    {
-                        usrname = clientList[id].name;
-                        client = CreateIPEndPoint(clientList[id].IP);
-                        id = clientList.Count();
-                    }
-                }
-                // Initialise the EndPoint for the client
-                epClient = (EndPoint)client;
-                sendData.ReadData.Add("ChatMessage", "*" + this.name + ":" + "respondeu a " + usrname  +  " com (OK)");
-                byte[] byteData = sendData.GetDataStream();
-                clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
-                this.Invoke(this.displayMessageDelegate, new object[] { sendData.ReadData["ChatMessage"] });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Send Error: " + ex.Message, "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void SendIsAlive(int usrid)
-        {
-            try
-            {
-                // Initialise a packet object to store the data to be sent
-                Packet sendData = new Packet();
-                sendData.ReadData.Add("ChatName",this.name);
-                sendData.ReadData.Add("ChatDataIdentifier", DataIdentifier.AmAlive);
-                sendData.ReadData.Add("ChatId", myId);
-                string usrname = "";
-
-                // Get packet as byte array
-                int id = 1;
-                IPEndPoint client = null;
-                for (; id < clientList.Count(); id++)
-                {
-                    if (clientList[id].Id == usrid)
-                    {
-                        usrname = clientList[id].name;
-                        client = CreateIPEndPoint(clientList[id].IP);
-                        id = clientList.Count();
-                    }
-                }
-                // Initialise the EndPoint for the client
-                epClient = (EndPoint)client;
-                sendData.ReadData["ChatMessage"] = "*" + this.name + ":" + "respondeu a " + usrname + " que estou vivo";
-                byte[] byteData = sendData.GetDataStream();
-                clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
-                this.Invoke(this.displayMessageDelegate, new object[] { sendData.ReadData["ChatMessage"] });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Send Error: " + ex.Message, "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-        private void StartElection()
-        {
-            if (eleicaorodando == true) return;
-            eleicaorodando = true;
-            var t = new Thread(() =>
-            {
-                try
-                {
-                    // Initialise a packet object to store the data to be sent
-                    Packet sendData = new Packet();
-                    sendData.ReadData.Add("ChatName", this.name);
-                    sendData.ReadData.Add("ChatMessage", txtMessage.Text.Trim());
-                    sendData.ReadData.Add("ChatDataIdentifier", DataIdentifier.ELECTION);
-                    sendData.ReadData.Add("ChatId", myId);
-
-                    // Get packet as byte array
-                    byte[] byteData = sendData.GetDataStream();
-                    // Send packet to the server
-                    IPEndPoint client = null;
-                    sendData.ReadData["ChatMessage"] = this.name + ":" + sendData.ReadData["ChatMessage"];
-                    for (int id = 1; id < clientList.Count(); id++)
-                    {
-                        if (clientList[id].Id > myId && clientList[id].Id != myId)
-                        {
-                            this.Invoke(this.displayMessageDelegate, new object[] { "Requisitando eleição para " + clientList[id].name });
-                            client = CreateIPEndPoint(clientList[id].IP);
-                            // Initialise the EndPoint for the client
-                            epClient = (EndPoint)client;
-                            byteData = sendData.GetDataStream();
-                            clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient,
-                                new AsyncCallback(this.SendData), null);
-                        }
-                    }
-                    this.Invoke(this.displayMessageDelegate, new object[] { sendData.ReadData["ChatMessage"] });
-                    var r = new Random();
-                    for (int i = 0; i < 5000 + r.Next(1, 100); i++)
-                    {
-                        Thread.Sleep(1);
-                        if (ElectionOKCount > 0)
-                        {
-                            i = 5000;
-                        }
-                    }
-                    if (ElectionOKCount > 0)
-                    {
-                        //alguém superior quer ser o chefe
-                        clientLeader = false;
-                        updatetxtlider("Escravo");
-                        this.Invoke(this.displayMessageDelegate, new object[] { "(não sou o lider)" });
-                    }
-                    else
-                    {
-                        //eu sou o lider
-                        clientLeader = true;
-                        updatetxtlider("Lider");
-                        sendData.ReadData["ChatDataIdentifier"] = DataIdentifier.Coordinator;
-                        this.Invoke(this.displayMessageDelegate, new object[] { "(Informando que sou o lider)" });
-                        for (int id = 1; id < clientList.Count(); id++)
-                        {
-                            if (clientList[id].Id != myId)
-                            {
-                                client = CreateIPEndPoint(clientList[id].IP);
-                                // Initialise the EndPoint for the client
-                                epClient = (EndPoint)client;
-                                byteData = sendData.GetDataStream();
-                                clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient,
-                                    new AsyncCallback(this.SendData), null);
-                            }
-                        }
-                    }
-                    ElectionOKCount = 0;
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Send Error: " + ex.Message, "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                eleicaorodando = false;
-            });
-            t.IsBackground = true;
-            t.Start();
-        }
-
-        #endregion
-
-        private void ElectionRequested(object sender, EventArgs e)
-        {
-            StartElection();
-        }
-
-        Random r = new Random();
-        public void CheckLeaderThread()
-        {
-            var t = new Thread(() =>
-            {
-                while (true)
-                {
-                    Thread.Sleep(r.Next(10000, 50000));
-                    if (epServer != null)
-                    {
-                        leaderAlive = false;
-
-                        Packet sendData = new Packet();
-                        sendData.ReadData.Add("ChatName", this.name);
-                        sendData.ReadData.Add("ChatDataIdentifier", DataIdentifier.IsAlive);
-                        sendData.ReadData.Add("ChatId", myId);
-                        for (int id = 1; id < clientList.Count(); id++)
-                        {
-                            if (clientList[id].Id == leaderId)
-                            {
-                                var client = CreateIPEndPoint(clientList[id].IP);
-                                // Initialise the EndPoint for the client
-                                epClient = (EndPoint)client;
-                                var byteData = sendData.GetDataStream();
-                                clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient,
-                                    new AsyncCallback(this.SendData), null);
-                            }
-                        }
-                        Thread.Sleep(1000);
-                        if (leaderAlive == false)
-                        {
-                            this.Invoke(this.displayMessageDelegate, new object[] { "(lider morreu, requerindo uma eleição)" });
-                            StartElection();
-                        }
-                    }
-                }
-
-            });
-            t.IsBackground = true;
-            t.Start();
-        }
 
         public void updatetxtlider(string nome)
         {
@@ -650,6 +463,16 @@ namespace ChatClient
             {
                 txtLider.Text = nome;
             });
+        }
+
+        public string GettxtMessage()
+        {
+            return txtMessage.Text.Trim();
+        }
+
+        public void ElectionRequested(object sender, EventArgs e)
+        {
+            faseI.StartElection();
         }
     }
 }
