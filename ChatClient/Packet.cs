@@ -22,6 +22,8 @@ namespace ChatApplication
         Coordinator,
         IsAlive,
         AmAlive,
+        RaStart,
+        RaRelease,
         RaRequest,
         RaOk
     }

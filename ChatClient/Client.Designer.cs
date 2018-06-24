@@ -35,6 +35,8 @@
             this.txtMessage = new System.Windows.Forms.TextBox();
             this.btnSend = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.label4 = new System.Windows.Forms.Label();
+            this.txtId = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
             this.txtPassw = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
@@ -45,14 +47,18 @@
             this.ToStr = new System.Windows.Forms.TextBox();
             this.OnlineFriends = new System.Windows.Forms.GroupBox();
             this.userslistbox = new System.Windows.Forms.ListBox();
-            this.label4 = new System.Windows.Forms.Label();
-            this.txtId = new System.Windows.Forms.TextBox();
             this.btnellection = new System.Windows.Forms.Button();
             this.txtLider = new System.Windows.Forms.Label();
+            this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.IniciarFaseII = new System.Windows.Forms.Button();
+            this.fase2pic = new System.Windows.Forms.PictureBox();
+            this.RcQueueSize = new System.Windows.Forms.ProgressBar();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
             this.OnlineFriends.SuspendLayout();
+            this.groupBox4.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.fase2pic)).BeginInit();
             this.SuspendLayout();
             // 
             // txtName
@@ -124,6 +130,22 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Connection Options";
             // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(6, 111);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(19, 13);
+            this.label4.TabIndex = 7;
+            this.label4.Text = "Id:";
+            // 
+            // txtId
+            // 
+            this.txtId.Location = new System.Drawing.Point(75, 108);
+            this.txtId.Name = "txtId";
+            this.txtId.Size = new System.Drawing.Size(150, 20);
+            this.txtId.TabIndex = 8;
+            // 
             // label3
             // 
             this.label3.AutoSize = true;
@@ -182,7 +204,7 @@
             // groupBox3
             // 
             this.groupBox3.Controls.Add(this.ToStr);
-            this.groupBox3.Location = new System.Drawing.Point(389, 447);
+            this.groupBox3.Location = new System.Drawing.Point(389, 522);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Size = new System.Drawing.Size(287, 61);
             this.groupBox3.TabIndex = 4;
@@ -216,22 +238,6 @@
             this.userslistbox.TabIndex = 0;
             this.userslistbox.Click += new System.EventHandler(this.userslistbox_Click);
             // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(6, 111);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(19, 13);
-            this.label4.TabIndex = 7;
-            this.label4.Text = "Id:";
-            // 
-            // txtId
-            // 
-            this.txtId.Location = new System.Drawing.Point(75, 108);
-            this.txtId.Name = "txtId";
-            this.txtId.Size = new System.Drawing.Size(150, 20);
-            this.txtId.TabIndex = 8;
-            // 
             // btnellection
             // 
             this.btnellection.Location = new System.Drawing.Point(243, 97);
@@ -251,11 +257,51 @@
             this.txtLider.TabIndex = 10;
             this.txtLider.Text = "Escravo";
             // 
+            // groupBox4
+            // 
+            this.groupBox4.Controls.Add(this.RcQueueSize);
+            this.groupBox4.Controls.Add(this.fase2pic);
+            this.groupBox4.Controls.Add(this.IniciarFaseII);
+            this.groupBox4.Location = new System.Drawing.Point(401, 401);
+            this.groupBox4.Name = "groupBox4";
+            this.groupBox4.Size = new System.Drawing.Size(287, 97);
+            this.groupBox4.TabIndex = 5;
+            this.groupBox4.TabStop = false;
+            this.groupBox4.Text = "Região Critica";
+            // 
+            // IniciarFaseII
+            // 
+            this.IniciarFaseII.Location = new System.Drawing.Point(171, 19);
+            this.IniciarFaseII.Name = "IniciarFaseII";
+            this.IniciarFaseII.Size = new System.Drawing.Size(86, 57);
+            this.IniciarFaseII.TabIndex = 2;
+            this.IniciarFaseII.Text = "&Start";
+            this.IniciarFaseII.UseVisualStyleBackColor = true;
+            this.IniciarFaseII.Click += new System.EventHandler(this.IniciarFaseII_Click);
+            // 
+            // fase2pic
+            // 
+            this.fase2pic.Image = global::ChatClient.Properties.Resources.SII_Idle;
+            this.fase2pic.Location = new System.Drawing.Point(6, 14);
+            this.fase2pic.Name = "fase2pic";
+            this.fase2pic.Size = new System.Drawing.Size(91, 77);
+            this.fase2pic.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.fase2pic.TabIndex = 3;
+            this.fase2pic.TabStop = false;
+            // 
+            // RcQueueSize
+            // 
+            this.RcQueueSize.Location = new System.Drawing.Point(117, 79);
+            this.RcQueueSize.Name = "RcQueueSize";
+            this.RcQueueSize.Size = new System.Drawing.Size(140, 14);
+            this.RcQueueSize.TabIndex = 4;
+            // 
             // Client
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(680, 611);
+            this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.txtLider);
             this.Controls.Add(this.btnellection);
             this.Controls.Add(this.OnlineFriends);
@@ -278,6 +324,8 @@
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
             this.OnlineFriends.ResumeLayout(false);
+            this.groupBox4.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.fase2pic)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -306,6 +354,10 @@
         private System.Windows.Forms.TextBox txtId;
         private System.Windows.Forms.Button btnellection;
         private System.Windows.Forms.Label txtLider;
+        private System.Windows.Forms.GroupBox groupBox4;
+        private System.Windows.Forms.Button IniciarFaseII;
+        private System.Windows.Forms.PictureBox fase2pic;
+        private System.Windows.Forms.ProgressBar RcQueueSize;
     }
 }
 

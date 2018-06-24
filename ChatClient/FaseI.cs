@@ -10,6 +10,14 @@ using System.Windows.Forms;
 
 namespace ChatClient
 {
+    public enum regiaocritica
+    {
+        Desativado,
+        Esperando,
+        LendoNaoCritico,
+        LendoCritico
+    }
+
     public class FaseI
     {
         public Client Client { get; internal set; }
@@ -119,7 +127,7 @@ namespace ChatClient
                 sendData.ReadData.Add("ChatMessage", "*" + this.name + ":" + "respondeu a " + usrname + " com (OK)");
                 byte[] byteData = sendData.GetDataStream();
                 clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.Client.SendData), null);
-                this.Client.GetNewLineLog = sendData.ReadData["ChatMessage"] as string;
+                this.Client.DisplayMessage( sendData.ReadData["ChatMessage"] as string);
             }
             catch (Exception ex)
             {
@@ -155,13 +163,42 @@ namespace ChatClient
                 sendData.ReadData["ChatMessage"] = "*" + this.name + ":" + "respondeu a " + usrname + " que estou vivo";
                 byte[] byteData = sendData.GetDataStream();
                 clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.Client.SendData), null);
-                this.Client.GetNewLineLog = sendData.ReadData["ChatMessage"] as string;
+                this.Client.DisplayMessage( sendData.ReadData["ChatMessage"] as string);
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Send Error: " + ex.Message, "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+        public void SendIsCoordinator(int? specificId)
+        {
+            // Initialise a packet object to store the data to be sent
+            Packet sendData = new Packet();
+            sendData.ReadData.Add("ChatName", this.name);
+            sendData.ReadData.Add("ChatMessage", this.Client.GettxtMessage());
+            sendData.ReadData.Add("ChatDataIdentifier", DataIdentifier.Coordinator);
+            sendData.ReadData.Add("ChatId", myId);
+            IPEndPoint client = null;
+            // Get packet as byte array
+            byte[] byteData = sendData.GetDataStream();
+
+            this.Client.DisplayMessage("(Informando que sou o lider)");
+            for (int id = 1; id < clientList.Count(); id++)
+            {
+                if (clientList[id].Id != myId && (specificId == null || specificId.Value == clientList[id].Id))
+                {
+                    client = IpData.CreateIPEndPoint(clientList[id].IP);
+                    // Initialise the EndPoint for the client
+                    epClient = (EndPoint)client;
+                    byteData = sendData.GetDataStream();
+                    clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient,
+                        new AsyncCallback(this.Client.SendData), null);
+                }
+            }
+
+        }
+
         public void StartElection()
         {
             if (eleicaorodando == true) return;
@@ -186,7 +223,7 @@ namespace ChatClient
                     {
                         if (clientList[id].Id > myId && clientList[id].Id != myId)
                         {
-                            this.Client.GetNewLineLog = "Requisitando eleição para " + clientList[id].name;
+                            this.Client.DisplayMessage( "Requisitando eleição para " + clientList[id].name);
                             client = IpData.CreateIPEndPoint(clientList[id].IP);
                             // Initialise the EndPoint for the client
                             epClient = (EndPoint)client;
@@ -195,7 +232,7 @@ namespace ChatClient
                                 new AsyncCallback(this.Client.SendData), null);
                         }
                     }
-                    this.Client.GetNewLineLog = sendData.ReadData["ChatMessage"] as string;
+                    this.Client.DisplayMessage(( sendData.ReadData["ChatMessage"] as string));
                     var r = new Random();
                     for (int i = 0; i < 5000 + r.Next(1, 100); i++)
                     {
@@ -210,27 +247,15 @@ namespace ChatClient
                         //alguém superior quer ser o chefe
                         clientLeader = false;
                         this.Client.updatetxtlider("Escravo");
-                        this.Client.GetNewLineLog = "(não sou o lider)";
+                        this.Client.DisplayMessage("(não sou o lider)");
                     }
                     else
                     {
                         //eu sou o lider
+                        leaderId = myId;
                         clientLeader = true;
                         this.Client.updatetxtlider("Lider");
-                        sendData.ReadData["ChatDataIdentifier"] = DataIdentifier.Coordinator;
-                        this.Client.GetNewLineLog = "(Informando que sou o lider)";
-                        for (int id = 1; id < clientList.Count(); id++)
-                        {
-                            if (clientList[id].Id != myId)
-                            {
-                                client = IpData.CreateIPEndPoint(clientList[id].IP);
-                                // Initialise the EndPoint for the client
-                                epClient = (EndPoint)client;
-                                byteData = sendData.GetDataStream();
-                                clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient,
-                                    new AsyncCallback(this.Client.SendData), null);
-                            }
-                        }
+                        SendIsCoordinator(null);
                     }
                     ElectionOKCount = 0;
                 }
@@ -282,7 +307,7 @@ namespace ChatClient
                                 leaderAlive = true;
                             }
                             else{
-                                this.Client.GetNewLineLog = "(lider morreu, requerindo uma eleição)";
+                                this.Client.DisplayMessage("(lider morreu, requerindo uma eleição)");
                                 StartElection();
                             }
                         }

@@ -26,7 +26,8 @@ namespace ChatClient
             get => Global.clientList;
         }
 
-        private Socket clientSocket {
+        private Socket clientSocket
+        {
             set => Global.clientSocket = value;
             get => Global.clientSocket;
         }
@@ -61,7 +62,7 @@ namespace ChatClient
         private int leaderId
         {
             set => Global.leaderId = value;
-            get => Global.leaderId;        
+            get => Global.leaderId;
         }
 
         // Server End Point
@@ -83,22 +84,12 @@ namespace ChatClient
             get => Global.dataStream;
         }
 
-        private string _lastString;
-        public string GetNewLineLog
-        {
-            set {
-                    _lastString = value;
-                    DisplayMessage(value);
-                }
-            get => _lastString;
-        }
-
         // Display message delegate
         #endregion
 
         #region Fases
-            FaseI faseI;
-            FaseII faseII;
+        FaseI faseI;
+        FaseII faseII;
         #endregion
         #region Constructor
 
@@ -106,8 +97,8 @@ namespace ChatClient
         {
             InitializeComponent();
             faseI = new FaseI(this);
- //           faseII = new FaseII();
-            var all =  new ClientData();
+            faseII = new FaseII(this);
+            var all = new ClientData();
             all.name = "All";
             clientList.Add(all);
             userslistbox.Items.Add(all.name);
@@ -116,7 +107,7 @@ namespace ChatClient
 
         #endregion
 
-        #region Events
+        #region UI Events
 
         private void Client_Load(object sender, EventArgs e)
         {
@@ -129,52 +120,52 @@ namespace ChatClient
             {
                 if (clientLeader == false)
                 {
-                    GetNewLineLog =  "Você não é o lider então não poderá enviar reequisições";
+                    DisplayMessage( "Você não é o lider então não poderá enviar reequisições");
                     return;
                 }
                 // Initialise a packet object to store the data to be sent
                 Packet sendData = new Packet();
                 sendData.ReadData.Add("ChatName", this.name);
-                sendData.ReadData.Add("ChatMessage" ,txtMessage.Text.Trim());
+                sendData.ReadData.Add("ChatMessage", txtMessage.Text.Trim());
                 sendData.ReadData.Add("ChatDataIdentifier", DataIdentifier.Message);
 
                 // Get packet as byte array
 
-                if(ToStr.Text == "All" || ToStr.Text == "")
+                if (ToStr.Text == "All" || ToStr.Text == "")
                 {
                     byte[] byteData = sendData.GetDataStream();
                     // Send packet to the server
                     IPEndPoint client = null;
                     sendData.ReadData["ChatMessage"] = this.name + ":" + sendData.ReadData["ChatMessage"];
-                    for (int id=1; id < clientList.Count(); id++)
+                    for (int id = 1; id < clientList.Count(); id++)
                     {
-                            client = IpData.CreateIPEndPoint(clientList[id].IP);
-                            // Initialise the EndPoint for the client
-                            epClient = (EndPoint)client;
-                            byteData = sendData.GetDataStream();
-                            clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
+                        client = IpData.CreateIPEndPoint(clientList[id].IP);
+                        // Initialise the EndPoint for the client
+                        epClient = (EndPoint)client;
+                        byteData = sendData.GetDataStream();
+                        clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
                     }
-                    GetNewLineLog =  sendData.ReadData["ChatMessage"] as string;
+                    DisplayMessage( sendData.ReadData["ChatMessage"] as string);
                 }
                 else
                 {
                     int id = 0;
                     IPEndPoint client = null;
-                    for (;id< clientList.Count(); id++)
+                    for (; id < clientList.Count(); id++)
                     {
-                        if(clientList[id].name == ToStr.Text)
+                        if (clientList[id].name == ToStr.Text)
                         {
                             client = IpData.CreateIPEndPoint(clientList[id].IP);
                         }
                     }
-                    if(client != null)
+                    if (client != null)
                     {
                         // Initialise the EndPoint for the client
                         epClient = (EndPoint)client;
                         sendData.ReadData["ChatMessage"] = "*" + this.name + ":" + sendData.ReadData["ChatMessage"];
                         byte[] byteData = sendData.GetDataStream();
                         clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
-                        GetNewLineLog = sendData.ReadData["ChatMessage"] as string;
+                        DisplayMessage( sendData.ReadData["ChatMessage"] as string);
                     }
                 }
 
@@ -219,11 +210,11 @@ namespace ChatClient
             try
             {
                 this.name = txtName.Text.Trim();
-                
+
                 // Initialise a packet object to store the data to be sent
                 Packet sendData = new Packet();
                 sendData.ReadData.Add("ChatName", this.name);
-                sendData.ReadData.Add("ChatDataIdentifier" , DataIdentifier.LogIn);
+                sendData.ReadData.Add("ChatDataIdentifier", DataIdentifier.LogIn);
                 sendData.ReadData.Add("ChatPassword", this.txtPassw.Text);
                 myId = int.Parse(txtId.Text);
                 sendData.ReadData.Add("ChatId", myId);
@@ -261,6 +252,12 @@ namespace ChatClient
             Close();
         }
 
+        private void IniciarFaseII_Click(object sender, EventArgs e)
+        {
+            faseII.StartFaseII(true);
+        }
+
+
         #endregion
 
         #region Send And Receive
@@ -293,7 +290,7 @@ namespace ChatClient
                     DataIdentifier ChatDataIdentifier = receivedData.GetDataIdentifier;
                     if (ChatDataIdentifier == DataIdentifier.OK)
                     {
-                        GetNewLineLog = "You Logged in";
+                        DisplayMessage( "You Logged in");
                     }
                     else if (ChatDataIdentifier == DataIdentifier.DuplicateId)
                     {
@@ -324,7 +321,7 @@ namespace ChatClient
                     else if (ChatDataIdentifier == DataIdentifier.ElectionOK)
                     {
                         ElectionOKCount++;
-                        GetNewLineLog =  receivedData.ReadData["ChatName"] as string + " tem nivel maior";
+                        DisplayMessage( receivedData.ReadData["ChatName"] as string + " tem nivel maior");
                         receivedData.ReadData["ChatName"] = name;
                         clientLeader = false;
 
@@ -335,13 +332,14 @@ namespace ChatClient
                         int chatId = receivedData.GetInt("ChatId");
                         if (myId > chatId)
                         {
-                            GetNewLineLog = receivedData.ReadData["ChatName"] as string + " acha que é o coordenador mas eu tenho id maior, resolvendo isso";
+                            DisplayMessage( receivedData.ReadData["ChatName"] as string + " acha que é o coordenador mas eu tenho id maior, resolvendo isso");
                             receivedData.ReadData["ChatName"] = name;
                             faseI.SendOkElection(chatId);
                         }
                         else
                         {
-                            GetNewLineLog =  receivedData.ReadData["ChatName"] as string + " é o coordenador";
+                            leaderId = receivedData.GetInt("ChatId");
+                            DisplayMessage( receivedData.ReadData["ChatName"] as string + " é o coordenador");
                             clientLeader = false;
                             updatetxtlider("Escravo");
                             receivedData.ReadData["ChatName"] = name;
@@ -351,13 +349,13 @@ namespace ChatClient
                     else if (ChatDataIdentifier == DataIdentifier.AmAlive)
                     {
                         leaderAlive = true;
-                        GetNewLineLog = receivedData.ReadData["ChatName"] as string + " Lider está vivo ";
+                        DisplayMessage( receivedData.ReadData["ChatName"] as string + " Lider está vivo ");
                         receivedData.ReadData["ChatName"] = name;
                     }
                     else if (ChatDataIdentifier == DataIdentifier.IsAlive)
                     {
                         leaderAlive = true;
-                        GetNewLineLog =  receivedData.ReadData["ChatName"] as string + " Lider está vivo ";
+                        DisplayMessage( receivedData.ReadData["ChatName"] as string + " Lider está vivo ");
                         receivedData.ReadData["ChatName"] = name;
                         faseI.SendIsAlive(receivedData.GetInt("ChatId"));
                     }
@@ -371,14 +369,32 @@ namespace ChatClient
                         clientList.Add(c);
                         refresh_list();
                     }
-
+                    
+                    else if(ChatDataIdentifier == DataIdentifier.RaStart)
+                    {
+                        DisplayMessage( "[system] " + receivedData.ReadData["ChatName"] as string + " Requisitou o inicio da fase 2");
+                        faseII.StartFaseII(false);
+                    }
+                    else if(ChatDataIdentifier == DataIdentifier.RaOk)
+                    {
+                        DisplayMessage( "[system] " + receivedData.ReadData["ChatName"] as string + " Liberou o uso da área critica");
+                        faseII.ReleaseCriticalZone();
+                    }
+                    else if(ChatDataIdentifier == DataIdentifier.RaRelease)
+                    {
+                        faseII.RemoveQueue(receivedData.GetInt("ChatId"), receivedData.ReadData["ChatName"] as string);
+                    }
+                    else if(ChatDataIdentifier == DataIdentifier.RaRequest)
+                    {
+                        faseII.AddQueue(receivedData.GetInt("ChatId"), receivedData.ReadData["ChatName"] as string);
+                    }
 
                     else if (receivedData.ReadData["ChatName"].Equals(name)) ;//duplicate
                     else
                     {
                         // Update display through a delegate
                         if (receivedData.ReadData["ChatMessage"] != null)
-                            GetNewLineLog =  receivedData.ReadData["ChatMessage"] as string;
+                            DisplayMessage( receivedData.ReadData["ChatMessage"] as string);
                     }
 
 
@@ -395,6 +411,14 @@ namespace ChatClient
                         c.Id = receivedData.GetInt("ChatId");
                         clientList.Add(c);
                         refresh_list();
+                        if (clientLeader)
+                        {
+                            faseI.SendIsCoordinator(c.Id);
+                            if (faseII.FaseIIstarted)
+                            {
+                                faseII.LeaderSendStartFase2();
+                            }
+                        }
                     }
                     else if (ChatDataIdentifier == DataIdentifier.LogOut)
                     {
@@ -428,10 +452,13 @@ namespace ChatClient
 
         public void DisplayMessage(string messge)
         {
-            Invoke((MethodInvoker)delegate
+            lock (this)
             {
-                rtxtConversation.Text += messge + Environment.NewLine;
-            });
+                Invoke((MethodInvoker)delegate
+                {
+                    rtxtConversation.Text += messge + Environment.NewLine;
+                });
+            }
         }
 
         #endregion
@@ -445,9 +472,9 @@ namespace ChatClient
         public void refresh_list()
         {
             var lu = new string[clientList.Count];
-            for (int i=0; i < clientList.Count(); i++)
+            for (int i = 0; i < clientList.Count(); i++)
             {
-                lu[i]  = clientList[i].name;
+                lu[i] = clientList[i].name;
             }
             this.Invoke(new MethodInvoker(delegate ()
             {
@@ -459,6 +486,7 @@ namespace ChatClient
 
         public void updatetxtlider(string nome)
         {
+
             this.Invoke((MethodInvoker)delegate
             {
                 txtLider.Text = nome;
@@ -473,6 +501,51 @@ namespace ChatClient
         public void ElectionRequested(object sender, EventArgs e)
         {
             faseI.StartElection();
+        }
+
+        public void AtualizaUiRegiaoCritica(regiaocritica rc)
+        {
+            this.Invoke((MethodInvoker)delegate
+            {
+                switch (rc)
+                {
+                    case regiaocritica.Desativado:
+                        fase2pic.Image = Properties.Resources.SII_Idle;
+                        break;
+                    case regiaocritica.Esperando:
+                        fase2pic.Image = Properties.Resources.SII_Wait;
+                        break;
+                    case regiaocritica.LendoCritico:
+                        fase2pic.Image = Properties.Resources.SII_ReadCrit;
+                        break;
+                    case regiaocritica.LendoNaoCritico:
+                        fase2pic.Image = Properties.Resources.SII_ReadNorm;
+                        break;
+                }
+            });
+        }
+
+        public ClientData GetClientById(int id)
+        {
+            ClientData c = null;
+            for (int i =0; i < clientList.Count(); i++)
+            {
+                if (clientList[i].Id == id)
+                {
+                    c = clientList[i];
+                    i = clientList.Count();
+                }
+            }
+            return c;
+        }
+
+        public void UpdateCriticalRegionQueueSize(int size, int max)
+        {
+            this.Invoke((MethodInvoker)delegate
+            {
+                RcQueueSize.Maximum = max;
+                RcQueueSize.Value = (size > max? max : size);
+            });
         }
     }
 }
