@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace ChatApplication
+namespace ServerProcess
 {
 
     public enum DataIdentifier

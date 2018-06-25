@@ -90,6 +90,7 @@ namespace ChatClient
         #region Fases
         FaseI faseI;
         FaseII faseII;
+        FaseIII faseIII;
         #endregion
         #region Constructor
 
@@ -116,66 +117,6 @@ namespace ChatClient
 
         private void btnSend_Click(object sender, EventArgs e)
         {
-            try
-            {
-                if (clientLeader == false)
-                {
-                    DisplayMessage( "Você não é o lider então não poderá enviar reequisições");
-                    return;
-                }
-                // Initialise a packet object to store the data to be sent
-                Packet sendData = new Packet();
-                sendData.ReadData.Add("ChatName", this.name);
-                sendData.ReadData.Add("ChatMessage", txtMessage.Text.Trim());
-                sendData.ReadData.Add("ChatDataIdentifier", DataIdentifier.Message);
-
-                // Get packet as byte array
-
-                if (ToStr.Text == "All" || ToStr.Text == "")
-                {
-                    byte[] byteData = sendData.GetDataStream();
-                    // Send packet to the server
-                    IPEndPoint client = null;
-                    sendData.ReadData["ChatMessage"] = this.name + ":" + sendData.ReadData["ChatMessage"];
-                    for (int id = 1; id < clientList.Count(); id++)
-                    {
-                        client = IpData.CreateIPEndPoint(clientList[id].IP);
-                        // Initialise the EndPoint for the client
-                        epClient = (EndPoint)client;
-                        byteData = sendData.GetDataStream();
-                        clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
-                    }
-                    DisplayMessage( sendData.ReadData["ChatMessage"] as string);
-                }
-                else
-                {
-                    int id = 0;
-                    IPEndPoint client = null;
-                    for (; id < clientList.Count(); id++)
-                    {
-                        if (clientList[id].name == ToStr.Text)
-                        {
-                            client = IpData.CreateIPEndPoint(clientList[id].IP);
-                        }
-                    }
-                    if (client != null)
-                    {
-                        // Initialise the EndPoint for the client
-                        epClient = (EndPoint)client;
-                        sendData.ReadData["ChatMessage"] = "*" + this.name + ":" + sendData.ReadData["ChatMessage"];
-                        byte[] byteData = sendData.GetDataStream();
-                        clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
-                        DisplayMessage( sendData.ReadData["ChatMessage"] as string);
-                    }
-                }
-
-
-                txtMessage.Text = string.Empty;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Send Error: " + ex.Message, "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
         }
 
         private void Client_FormClosing(object sender, FormClosingEventArgs e)
@@ -211,6 +152,10 @@ namespace ChatClient
             {
                 this.name = txtName.Text.Trim();
 
+                if(txtServerIP.Text == "")
+                {
+                    txtServerIP.Text = "127.0.0.1";
+                }
                 // Initialise a packet object to store the data to be sent
                 Packet sendData = new Packet();
                 sendData.ReadData.Add("ChatName", this.name);
@@ -264,22 +209,22 @@ namespace ChatClient
 
         public void SendData(IAsyncResult ar)
         {
-            try
-            {
+//            try
+//            {
                 clientSocket.EndSend(ar);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Send Data: " + ex.Message, "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+//            }
+//            catch (Exception ex)
+//            {
+      //          MessageBox.Show("Send Data: " + ex.Message, "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
+//            }
         }
 
         private void ReceiveData(IAsyncResult ar)
         {
             var t = new Thread(() =>
             {
-                try
-                {
+//                try
+ //               {
                     // Receive all data
                     this.clientSocket.EndReceive(ar);
 
@@ -288,114 +233,116 @@ namespace ChatClient
                     Packet receivedData = new Packet(dataStream);
 
                     DataIdentifier ChatDataIdentifier = receivedData.GetDataIdentifier;
-                    if (ChatDataIdentifier == DataIdentifier.OK)
+                if (ChatDataIdentifier == DataIdentifier.OK)
+                {
+                    DisplayMessage("You Logged in");
+                }
+                else if (ChatDataIdentifier == DataIdentifier.DuplicateId)
+                {
+                    MessageBox.Show("Theres already a user logged with this id.", "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    // Close the socket
+                    this.clientSocket.Close();
+                }
+                else if (ChatDataIdentifier == DataIdentifier.WrongPassw)
+                {
+                    MessageBox.Show("Wrong Password", "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    // Close the socket
+                    this.clientSocket.Close();
+                }
+                else if (ChatDataIdentifier == DataIdentifier.ELECTION)
+                {
+                    int chatId = receivedData.GetInt("ChatId");
+                    if (myId > chatId)
                     {
-                        DisplayMessage( "You Logged in");
+                        faseI.SendOkElection(chatId);
+                        faseI.StartElection();
                     }
-                    else if (ChatDataIdentifier == DataIdentifier.DuplicateId)
-                    {
-                        MessageBox.Show("Theres already a user logged with this id.", "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        // Close the socket
-                        this.clientSocket.Close();
-                    }
-                    else if (ChatDataIdentifier == DataIdentifier.WrongPassw)
-                    {
-                        MessageBox.Show("Wrong Password", "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        // Close the socket
-                        this.clientSocket.Close();
-                    }
-                    else if (ChatDataIdentifier == DataIdentifier.ELECTION)
-                    {
-                        int chatId = receivedData.GetInt("ChatId");
-                        if (myId > chatId)
-                        {
-                            faseI.SendOkElection(chatId);
-                            faseI.StartElection();
-                        }
-                        else
-                        {
-                            ElectionOKCount++;
-                        }
-                        receivedData.ReadData["ChatName"] = name;
-                    }
-                    else if (ChatDataIdentifier == DataIdentifier.ElectionOK)
-                    {
-                        ElectionOKCount++;
-                        DisplayMessage( receivedData.ReadData["ChatName"] as string + " tem nivel maior");
-                        receivedData.ReadData["ChatName"] = name;
-                        clientLeader = false;
-
-                        updatetxtlider("Escravo");
-                    }
-                    else if (ChatDataIdentifier == DataIdentifier.Coordinator)
-                    {
-                        int chatId = receivedData.GetInt("ChatId");
-                        if (myId > chatId)
-                        {
-                            DisplayMessage( receivedData.ReadData["ChatName"] as string + " acha que é o coordenador mas eu tenho id maior, resolvendo isso");
-                            receivedData.ReadData["ChatName"] = name;
-                            faseI.SendOkElection(chatId);
-                        }
-                        else
-                        {
-                            leaderId = receivedData.GetInt("ChatId");
-                            DisplayMessage( receivedData.ReadData["ChatName"] as string + " é o coordenador");
-                            clientLeader = false;
-                            updatetxtlider("Escravo");
-                            receivedData.ReadData["ChatName"] = name;
-                        }
-                        receivedData.ReadData["ChatName"] = name;
-                    }
-                    else if (ChatDataIdentifier == DataIdentifier.AmAlive)
-                    {
-                        leaderAlive = true;
-                        DisplayMessage( receivedData.ReadData["ChatName"] as string + " Lider está vivo ");
-                        receivedData.ReadData["ChatName"] = name;
-                    }
-                    else if (ChatDataIdentifier == DataIdentifier.IsAlive)
-                    {
-                        leaderAlive = true;
-                        DisplayMessage( receivedData.ReadData["ChatName"] as string + " Lider está vivo ");
-                        receivedData.ReadData["ChatName"] = name;
-                        faseI.SendIsAlive(receivedData.GetInt("ChatId"));
-                    }
-
-                    else if (ChatDataIdentifier == DataIdentifier.UpdateList)
-                    {
-                        var c = new ClientData();
-                        c.name = receivedData.ReadData["ChatName"] as string;
-                        c.IP = receivedData.ReadData["ChatIp"] as string;
-                        c.Id = (receivedData.GetInt("ChatId"));
-                        clientList.Add(c);
-                        refresh_list();
-                    }
-                    
-                    else if(ChatDataIdentifier == DataIdentifier.RaStart)
-                    {
-                        DisplayMessage( "[system] " + receivedData.ReadData["ChatName"] as string + " Requisitou o inicio da fase 2");
-                        faseII.StartFaseII(false);
-                    }
-                    else if(ChatDataIdentifier == DataIdentifier.RaOk)
-                    {
-                        DisplayMessage( "[system] " + receivedData.ReadData["ChatName"] as string + " Liberou o uso da área critica");
-                        faseII.ReleaseCriticalZone();
-                    }
-                    else if(ChatDataIdentifier == DataIdentifier.RaRelease)
-                    {
-                        faseII.RemoveQueue(receivedData.GetInt("ChatId"), receivedData.ReadData["ChatName"] as string);
-                    }
-                    else if(ChatDataIdentifier == DataIdentifier.RaRequest)
-                    {
-                        faseII.AddQueue(receivedData.GetInt("ChatId"), receivedData.ReadData["ChatName"] as string);
-                    }
-
-                    else if (receivedData.ReadData["ChatName"].Equals(name)) ;//duplicate
                     else
                     {
-                        // Update display through a delegate
-                        if (receivedData.ReadData["ChatMessage"] != null)
-                            DisplayMessage( receivedData.ReadData["ChatMessage"] as string);
+                        ElectionOKCount++;
                     }
+                    receivedData.ReadData["ChatName"] = name;
+                }
+                else if (ChatDataIdentifier == DataIdentifier.ElectionOK)
+                {
+                    ElectionOKCount++;
+                    DisplayMessage(receivedData.ReadData["ChatName"] as string + " tem nivel maior");
+                    receivedData.ReadData["ChatName"] = name;
+                    clientLeader = false;
+
+                    updatetxtlider("Escravo");
+                }
+                else if (ChatDataIdentifier == DataIdentifier.Coordinator)
+                {
+                    int chatId = receivedData.GetInt("ChatId");
+                    if (myId > chatId)
+                    {
+                        DisplayMessage(receivedData.ReadData["ChatName"] as string + " acha que é o coordenador mas eu tenho id maior, resolvendo isso");
+                        receivedData.ReadData["ChatName"] = name;
+                        faseI.SendOkElection(chatId);
+                    }
+                    else
+                    {
+                        leaderId = receivedData.GetInt("ChatId");
+                        DisplayMessage(receivedData.ReadData["ChatName"] as string + " é o coordenador");
+                        clientLeader = false;
+                        updatetxtlider("Escravo");
+                        receivedData.ReadData["ChatName"] = name;
+                    }
+                    receivedData.ReadData["ChatName"] = name;
+                }
+                else if (ChatDataIdentifier == DataIdentifier.AmAlive)
+                {
+                    leaderAlive = true;
+                    DisplayMessage(receivedData.ReadData["ChatName"] as string + " Lider está vivo ");
+                    receivedData.ReadData["ChatName"] = name;
+                }
+                else if (ChatDataIdentifier == DataIdentifier.IsAlive)
+                {
+                    leaderAlive = true;
+                    DisplayMessage(receivedData.ReadData["ChatName"] as string + " Lider está vivo ");
+                    receivedData.ReadData["ChatName"] = name;
+                    faseI.SendIsAlive(receivedData.GetInt("ChatId"));
+                }
+
+                else if (ChatDataIdentifier == DataIdentifier.UpdateList)
+                {
+                    var c = new ClientData();
+                    c.name = receivedData.ReadData["ChatName"] as string;
+                    c.IP = receivedData.ReadData["ChatIp"] as string;
+                    c.Id = (receivedData.GetInt("ChatId"));
+                    clientList.Add(c);
+                    refresh_list();
+                }
+
+                else if (ChatDataIdentifier == DataIdentifier.RaStart)
+                {
+                    DisplayMessage("[system] " + receivedData.ReadData["ChatName"] as string + " Requisitou o inicio da fase 2");
+                    faseII.StartFaseII(false);
+                }
+                else if (ChatDataIdentifier == DataIdentifier.RaOk)
+                {
+                    DisplayMessage("[system] " + receivedData.ReadData["ChatName"] as string + " Liberou o uso da área critica");
+                    faseII.ReleaseCriticalZone();
+                }
+                else if (ChatDataIdentifier == DataIdentifier.RaRelease)
+                {
+                    faseII.RemoveQueue(receivedData.GetInt("ChatId"), receivedData.ReadData["ChatName"] as string);
+                }
+                else if (ChatDataIdentifier == DataIdentifier.RaRequest)
+                {
+                    faseII.AddQueue(receivedData.GetInt("ChatId"), receivedData.ReadData["ChatName"] as string);
+                }
+
+                else if (ChatDataIdentifier == DataIdentifier.SiteOk || ChatDataIdentifier == DataIdentifier.SiteFail) ;
+
+                else if (receivedData.ReadData["ChatName"].Equals(name)) ;//duplicate
+                else
+                {
+                    // Update display through a delegate
+                    if (receivedData.ReadData["ChatMessage"] != null)
+                        DisplayMessage(receivedData.ReadData["ChatMessage"] as string);
+                }
 
 
 
@@ -434,13 +381,13 @@ namespace ChatClient
                     }
                     // Continue listening for broadcasts
                     clientSocket.BeginReceiveFrom(dataStream, 0, dataStream.Length, SocketFlags.None, ref Global.epServer, new AsyncCallback(this.ReceiveData), null);
-                }
-                catch (ObjectDisposedException)
-                { }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Receive Data: " + ex.Message, "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+   //             }
+     //           catch (ObjectDisposedException)
+       //         { }
+         //       catch (Exception ex)
+           //     {
+             //       MessageBox.Show("Receive Data: " + ex.Message, "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
+               // }
             });
             t.IsBackground = true;
             t.Start();
@@ -466,7 +413,7 @@ namespace ChatClient
         public void userslistbox_Click(object sender, EventArgs e)
         {
             var x = sender as ListBox;
-            ToStr.Text = (string)x.SelectedItem;
+            //ToStr.Text = (string)x.SelectedItem;
         }
 
         public void refresh_list()
@@ -546,6 +493,22 @@ namespace ChatClient
                 RcQueueSize.Maximum = max;
                 RcQueueSize.Value = (size > max? max : size);
             });
+        }
+
+        private void button_faseIII_Click(object sender, EventArgs e)
+        {
+
+            int id = int.Parse(siteID.Text) + 3000;
+            faseIII = new FaseIII(this, "127.0.0.1:" +  id.ToString());
+            faseIII.Insercao();
+            faseIII.Insercao();
+            faseIII.Busca();
+            faseIII.Busca();
+        }
+
+        private void button_index_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

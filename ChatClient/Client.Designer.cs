@@ -44,15 +44,17 @@
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.btnExit = new System.Windows.Forms.Button();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
-            this.ToStr = new System.Windows.Forms.TextBox();
             this.OnlineFriends = new System.Windows.Forms.GroupBox();
             this.userslistbox = new System.Windows.Forms.ListBox();
             this.btnellection = new System.Windows.Forms.Button();
             this.txtLider = new System.Windows.Forms.Label();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
-            this.IniciarFaseII = new System.Windows.Forms.Button();
-            this.fase2pic = new System.Windows.Forms.PictureBox();
             this.RcQueueSize = new System.Windows.Forms.ProgressBar();
+            this.fase2pic = new System.Windows.Forms.PictureBox();
+            this.IniciarFaseII = new System.Windows.Forms.Button();
+            this.button_faseIII = new System.Windows.Forms.Button();
+            this.button_index = new System.Windows.Forms.Button();
+            this.siteID = new System.Windows.Forms.TextBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -203,21 +205,15 @@
             // 
             // groupBox3
             // 
-            this.groupBox3.Controls.Add(this.ToStr);
-            this.groupBox3.Location = new System.Drawing.Point(389, 522);
+            this.groupBox3.Controls.Add(this.siteID);
+            this.groupBox3.Controls.Add(this.button_index);
+            this.groupBox3.Controls.Add(this.button_faseIII);
+            this.groupBox3.Location = new System.Drawing.Point(389, 520);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(287, 61);
+            this.groupBox3.Size = new System.Drawing.Size(287, 79);
             this.groupBox3.TabIndex = 4;
             this.groupBox3.TabStop = false;
-            this.groupBox3.Text = "To";
-            // 
-            // ToStr
-            // 
-            this.ToStr.Location = new System.Drawing.Point(6, 20);
-            this.ToStr.Multiline = true;
-            this.ToStr.Name = "ToStr";
-            this.ToStr.Size = new System.Drawing.Size(275, 20);
-            this.ToStr.TabIndex = 2;
+            this.groupBox3.Text = "Fase III";
             // 
             // OnlineFriends
             // 
@@ -269,15 +265,12 @@
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Região Critica";
             // 
-            // IniciarFaseII
+            // RcQueueSize
             // 
-            this.IniciarFaseII.Location = new System.Drawing.Point(171, 19);
-            this.IniciarFaseII.Name = "IniciarFaseII";
-            this.IniciarFaseII.Size = new System.Drawing.Size(86, 57);
-            this.IniciarFaseII.TabIndex = 2;
-            this.IniciarFaseII.Text = "&Start";
-            this.IniciarFaseII.UseVisualStyleBackColor = true;
-            this.IniciarFaseII.Click += new System.EventHandler(this.IniciarFaseII_Click);
+            this.RcQueueSize.Location = new System.Drawing.Point(117, 79);
+            this.RcQueueSize.Name = "RcQueueSize";
+            this.RcQueueSize.Size = new System.Drawing.Size(140, 14);
+            this.RcQueueSize.TabIndex = 4;
             // 
             // fase2pic
             // 
@@ -289,12 +282,42 @@
             this.fase2pic.TabIndex = 3;
             this.fase2pic.TabStop = false;
             // 
-            // RcQueueSize
+            // IniciarFaseII
             // 
-            this.RcQueueSize.Location = new System.Drawing.Point(117, 79);
-            this.RcQueueSize.Name = "RcQueueSize";
-            this.RcQueueSize.Size = new System.Drawing.Size(140, 14);
-            this.RcQueueSize.TabIndex = 4;
+            this.IniciarFaseII.Location = new System.Drawing.Point(171, 19);
+            this.IniciarFaseII.Name = "IniciarFaseII";
+            this.IniciarFaseII.Size = new System.Drawing.Size(86, 57);
+            this.IniciarFaseII.TabIndex = 2;
+            this.IniciarFaseII.Text = "&Start";
+            this.IniciarFaseII.UseVisualStyleBackColor = true;
+            this.IniciarFaseII.Click += new System.EventHandler(this.IniciarFaseII_Click);
+            // 
+            // button_faseIII
+            // 
+            this.button_faseIII.Location = new System.Drawing.Point(183, 19);
+            this.button_faseIII.Name = "button_faseIII";
+            this.button_faseIII.Size = new System.Drawing.Size(86, 57);
+            this.button_faseIII.TabIndex = 5;
+            this.button_faseIII.Text = "&Start";
+            this.button_faseIII.UseVisualStyleBackColor = true;
+            this.button_faseIII.Click += new System.EventHandler(this.button_faseIII_Click);
+            // 
+            // button_index
+            // 
+            this.button_index.Location = new System.Drawing.Point(75, 19);
+            this.button_index.Name = "button_index";
+            this.button_index.Size = new System.Drawing.Size(86, 57);
+            this.button_index.TabIndex = 6;
+            this.button_index.Text = "&Get Index";
+            this.button_index.UseVisualStyleBackColor = true;
+            this.button_index.Click += new System.EventHandler(this.button_index_Click);
+            // 
+            // siteID
+            // 
+            this.siteID.Location = new System.Drawing.Point(6, 38);
+            this.siteID.Name = "siteID";
+            this.siteID.Size = new System.Drawing.Size(47, 20);
+            this.siteID.TabIndex = 7;
             // 
             // Client
             // 
@@ -345,7 +368,6 @@
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.Button btnExit;
         private System.Windows.Forms.GroupBox groupBox3;
-        private System.Windows.Forms.TextBox ToStr;
         private System.Windows.Forms.GroupBox OnlineFriends;
         private System.Windows.Forms.ListBox userslistbox;
         private System.Windows.Forms.Label label3;
@@ -358,6 +380,9 @@
         private System.Windows.Forms.Button IniciarFaseII;
         private System.Windows.Forms.PictureBox fase2pic;
         private System.Windows.Forms.ProgressBar RcQueueSize;
+        private System.Windows.Forms.Button button_faseIII;
+        private System.Windows.Forms.Button button_index;
+        private System.Windows.Forms.TextBox siteID;
     }
 }
 

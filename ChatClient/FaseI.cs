@@ -234,7 +234,7 @@ namespace ChatClient
                     }
                     this.Client.DisplayMessage(( sendData.ReadData["ChatMessage"] as string));
                     var r = new Random();
-                    for (int i = 0; i < 5000 + r.Next(1, 100); i++)
+                    for (int i = 0; i < 1000 + r.Next(1, 100); i++)
                     {
                         Thread.Sleep(1);
                         if (ElectionOKCount > 0)
