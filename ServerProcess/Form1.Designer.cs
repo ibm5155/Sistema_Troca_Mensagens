@@ -28,28 +28,10 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.label1 = new System.Windows.Forms.Label();
-            this.Input_ProcessId = new System.Windows.Forms.TextBox();
             this.button1 = new System.Windows.Forms.Button();
             this.rtxtConversation = new System.Windows.Forms.RichTextBox();
             this.button_leader = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 9);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(97, 13);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "Processo Numero: ";
-            // 
-            // Input_ProcessId
-            // 
-            this.Input_ProcessId.Location = new System.Drawing.Point(106, 6);
-            this.Input_ProcessId.Name = "Input_ProcessId";
-            this.Input_ProcessId.Size = new System.Drawing.Size(31, 20);
-            this.Input_ProcessId.TabIndex = 1;
             // 
             // button1
             // 
@@ -88,20 +70,14 @@
             this.Controls.Add(this.button_leader);
             this.Controls.Add(this.rtxtConversation);
             this.Controls.Add(this.button1);
-            this.Controls.Add(this.Input_ProcessId);
-            this.Controls.Add(this.label1);
             this.Name = "Form1";
             this.Text = "Form1";
             this.Load += new System.EventHandler(this.Site_Load);
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
         #endregion
-
-        private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.TextBox Input_ProcessId;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.RichTextBox rtxtConversation;
         private System.Windows.Forms.Button button_leader;

@@ -41,14 +41,14 @@ namespace ChatClient
                    Packet sendData = new Packet();
                    sendData.ReadData.Add("ChatName", Global.name);
                    sendData.ReadData.Add("ChatDataIdentifier", DataIdentifier.Message);
-                   sendData.ReadData.Add("ChatId", Global.myId);
+                   sendData.ReadData.Add("ChatMessage", texto);
 
                    // Get packet as byte array
                    IPEndPoint client = IpData.CreateIPEndPoint(_serverIP);
                    // Initialise the EndPoint for the client
                    Global.epClient = (EndPoint)client;
                    byte[] byteData = sendData.GetDataStream();
-                   Global.clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, Global.epClient, new AsyncCallback(this.Client.SendData), null);
+                   Global.clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, Global.epClient, new AsyncCallback(this.Client.SendData), Global.epClient);
                     Thread.Sleep(random.Next(100, 400));
                }
            });
@@ -67,14 +67,13 @@ namespace ChatClient
                     Packet sendData = new Packet();
                     sendData.ReadData.Add("ChatName", Global.name);
                     sendData.ReadData.Add("ChatDataIdentifier", DataIdentifier.SiteIndex);
-                    sendData.ReadData.Add("ChatId", Global.myId);
                     sendData.ReadData.Add("Index", random.Next(0, 1000000000));
                     // Get packet as byte array
                     IPEndPoint client = IpData.CreateIPEndPoint(_serverIP);
                     // Initialise the EndPoint for the client
                     Global.epClient = (EndPoint)client;
                     byte[] byteData = sendData.GetDataStream();
-                    Global.clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, Global.epClient, new AsyncCallback(this.Client.SendData), null);
+                    Global.clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, Global.epClient, new AsyncCallback(this.Client.SendData), Global.epClient);
                     Thread.Sleep(random.Next(200, 800));
                 }
             });

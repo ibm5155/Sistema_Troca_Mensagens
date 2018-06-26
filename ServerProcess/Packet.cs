@@ -45,6 +45,7 @@ namespace ServerProcess
         {
             get
             {
+                if(ReadData.Count == 0) return DataIdentifier.NoPacket;
                 var read = ReadData["ChatDataIdentifier"];
                 if (read != null)
                 {

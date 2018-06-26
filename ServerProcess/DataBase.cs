@@ -24,7 +24,8 @@ namespace ServerProcess
             }
             else
             {
-                File.Create(fullpath);
+                var x = File.Create(fullpath);
+                x.Close();
                 tw = new StreamWriter(fullpath);
 
             }
@@ -32,7 +33,14 @@ namespace ServerProcess
 
         ~DataBase()
         {
-            tw.Close();
+            try
+            {
+                tw.Close();
+            }
+            catch
+            {
+
+            }
             localDB.Clear();
         }
 

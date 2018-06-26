@@ -15,6 +15,7 @@ namespace ServerProcess
 {
     public partial class Form1 : Form
     {
+        public static int InitialServerPort = 30000;
         private List<int> ServerQueue = new List<int>();
         private static byte[] dataStream = new byte[1024];
         private ClientData _connectedClient;
@@ -23,8 +24,7 @@ namespace ServerProcess
         private int leaderId = 3;
         private DataBase _dataBase;
         // Server End Point
-        public static EndPoint epServer;
-        public static EndPoint epClient;
+        private EndPoint epSender;
         // Server socket
         private Socket serverSocket;
 
@@ -58,6 +58,7 @@ namespace ServerProcess
 
         public void SendData(IAsyncResult ar)
         {
+            DisplayMessage("SendingData");
             serverSocket.EndSend(ar);
         }
 
@@ -65,57 +66,68 @@ namespace ServerProcess
         {
             var t = new Thread(() =>
             {
-            // Receive all data
-            this.serverSocket.EndReceive(ar);
+                // Grab infro from whos talking with you
+                IPEndPoint clients = new IPEndPoint(IPAddress.Any, 0);
+                EndPoint epSender = (EndPoint)clients;
 
-            // Initialise a packet object to store the received data
+                // Receive all data
+                this.serverSocket.EndReceiveFrom(ar, ref epSender);
 
-            Packet receivedData = new Packet(dataStream);
+                // Initialise a packet object to store the received data
 
-            DataIdentifier ChatDataIdentifier = receivedData.GetDataIdentifier;
+                Packet receivedData = new Packet(dataStream);
 
+                DataIdentifier ChatDataIdentifier = receivedData.GetDataIdentifier;
 
-            if (ChatDataIdentifier == DataIdentifier.Coordinator)
-            {
-                leaderId = receivedData.GetInt("ChatId");
-            }
-            else if (ChatDataIdentifier == DataIdentifier.Message)
-            {
-                    UserRequestInsertData(receivedData.ReadData["ChatMessage"] as string);
-            }
-            else if (ChatDataIdentifier == DataIdentifier.SiteIndex)
-            {
-                UserRequestGetIndex(receivedData.ReadData["ChatName"] as string, receivedData.ReadData["ChatIp"] as string, receivedData.GetInt("Index"));
-            }
-            else if (ChatDataIdentifier == DataIdentifier.SiteRelease)
-            {
+                DisplayMessage("Received data " + ChatDataIdentifier);
+                if (ChatDataIdentifier == DataIdentifier.Coordinator)
+                {
+                    SiteGetCoordinator(receivedData.GetInt("ChatId"));
+                }
+                else if (ChatDataIdentifier == DataIdentifier.Message)
+                {
+                    Thread tt = new Thread(() =>
+                    {
+                        UserRequestInsertData(receivedData.ReadData["ChatMessage"] as string);
+                    });
+                    tt.IsBackground = true;
+                    tt.Start();
+
+                }
+                else if (ChatDataIdentifier == DataIdentifier.SiteIndex)
+                {
+                    UserRequestGetIndex(receivedData.ReadData["ChatName"] as string, epSender.ToString(), receivedData.GetInt("Index"));
+                }
+                else if (ChatDataIdentifier == DataIdentifier.SiteRelease)
+                {
                     AllowCriticalArea = true;
-            }
-            else if (ChatDataIdentifier == DataIdentifier.SiteRequest)
-            {
-                SiteGetRequest(receivedData.GetInt("ChatId"));
-            }
-            else if (ChatDataIdentifier == DataIdentifier.UpdateList)
-            {
-                SiteGetUpdate(receivedData.ReadData["ChatMessage"] as string);
-            }
-            else
-            {
-                // Update display through a delegate
-                if (receivedData.ReadData["ChatMessage"] != null)
-                    DisplayMessage(receivedData.ReadData["ChatMessage"] as string);
-            }
+                }
+                else if (ChatDataIdentifier == DataIdentifier.SiteRequest)
+                {
+                    SiteGetRequest(receivedData.GetInt("ChatId"));
+                }
+                else if (ChatDataIdentifier == DataIdentifier.UpdateList)
+                {
+                    SiteGetUpdate(receivedData.ReadData["ChatMessage"] as string);
+                }
+                else
+                {
+
+                }
 
 
 
                 // Reset data stream
                 dataStream = new byte[1024];
 
+                DisplayMessage("Wait for next message");
 
                 // Continue listening for broadcasts
-                serverSocket.BeginReceiveFrom(dataStream, 0, dataStream.Length, SocketFlags.None, ref epServer, new AsyncCallback(ReceiveData), null);
-            });
-            t.IsBackground = true;
+                serverSocket.BeginReceiveFrom(dataStream, 0, dataStream.Length, SocketFlags.None, ref epSender, new AsyncCallback(ReceiveData), epSender);
+            })
+            {
+                IsBackground = true
+            };
             t.Start();
         }
 
@@ -123,38 +135,46 @@ namespace ServerProcess
 
         private void button1_Click(object sender, EventArgs e)
         {
-            myId = int.Parse(Input_ProcessId.Text);
+            myId = 1;
+            bool pass = false;
+            while (!pass)
+            {
+                try
+                {
+                    // Initialise the socket
+                    serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+
+                    // Initialise the IPEndPoint for the server and listen on port 30000
+                    IPEndPoint server = new IPEndPoint(IPAddress.Any, InitialServerPort + myId);
+
+                    // Associate the socket with this IP address and port
+                    serverSocket.Bind(server);
+
+                    // Initialise the IPEndPoint for the clients
+                    IPEndPoint clients = new IPEndPoint(IPAddress.Any, 0);
+
+                    // Initialise the EndPoint for the clients
+                    epSender = (EndPoint)clients;
+
+
+                    DisplayMessage("Escutando dados  da porta " + (InitialServerPort + myId));
+                    pass = true;
+                    // Start listening for incoming data
+                    serverSocket.BeginReceiveFrom(dataStream, 0, dataStream.Length, SocketFlags.None, ref epSender, new AsyncCallback(ReceiveData), epSender);
+
+                }
+                catch (System.Net.Sockets.SocketException ex)
+                {
+                    pass = false;
+                    myId++;
+                }
+                catch (Exception ex)
+                {
+                    pass = true;
+                    MessageBox.Show("Load Error: " + ex.Message, "UDP Server", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
             _dataBase = new DataBase(myId);
-
-            try
-            {
-
-                // Initialise the socket
-                serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-
-                // Initialise the IPEndPoint for the server and listen on port 30000
-                IPEndPoint server = new IPEndPoint(IPAddress.Any, 30000+ myId);
-
-                // Associate the socket with this IP address and port
-                serverSocket.Bind(server);
-
-                // Initialise the IPEndPoint for the clients
-                IPEndPoint clients = new IPEndPoint(IPAddress.Any, 0);
-
-                // Initialise the EndPoint for the clients
-                EndPoint epSender = (EndPoint)clients;
-
-                DisplayMessage("Conectado no endereço 127.0.0.1:" + (3000 + myId));
-
-                // Start listening for incoming data
-                serverSocket.BeginReceiveFrom(dataStream, 0, dataStream.Length, SocketFlags.None, ref epSender, new AsyncCallback(ReceiveData), epSender);
-
-
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Load Error: " + ex.Message, "UDP Server", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
 
         }
 
@@ -162,8 +182,10 @@ namespace ServerProcess
         {
             lock (_criticalRegion)
             {
-                while(AllowCriticalArea == false)
+                SiteSendRequest();
+                while (AllowCriticalArea == false)
                 {
+                    // Continue listening for broadcasts
                     Thread.Sleep(1);
                 }
                 //my turn has come 
@@ -194,7 +216,7 @@ namespace ServerProcess
                 sendData.ReadData.Add("ChatId", myId);
                 IPEndPoint client = IpData.CreateIPEndPoint(ip);
                 // Initialise the EndPoint for the client
-                epClient = (EndPoint)client;
+                var epClient = (EndPoint)client;
                 byte[] byteData = sendData.GetDataStream();
                 serverSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
             }
@@ -207,11 +229,14 @@ namespace ServerProcess
 
         private void SiteGetCoordinator(int id)
         {
-            DisplayMessage("[Site] Site " + id + "é o coordenador");
+            DisplayMessage("[Site] Site " + id + " é o coordenador");
             if (myId != id)
             {
-                button_leader.Enabled = false;
-                button1.Enabled = false;
+                this.Invoke((MethodInvoker)delegate
+                {
+                    button_leader.Enabled = false;
+                    button1.Enabled = false;
+                });
             }
             leaderId = id;
         }
@@ -228,9 +253,9 @@ namespace ServerProcess
                 for (int i = 1; i <= 3; i++)
                 {
                     client = null;
-                    client = IpData.CreateIPEndPoint("127.0.0.1:" + (3000 + i).ToString());
+                    client = IpData.CreateIPEndPoint("127.0.0.1:" + (InitialServerPort + i).ToString());
                     // Initialise the EndPoint for the client
-                    epClient = (EndPoint)client;
+                    var epClient = (EndPoint)client;
                     byte[] byteData = sendData.GetDataStream();
                     serverSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
                 }
@@ -276,9 +301,9 @@ namespace ServerProcess
                 sendData.ReadData.Add("ChatId", myId);
                 for (int i = 1; i <= 3; i++)
                 {
-                    IPEndPoint client = IpData.CreateIPEndPoint("127.0.0.1:" + (3000 + i).ToString());
+                    IPEndPoint client = IpData.CreateIPEndPoint("127.0.0.1:" + (InitialServerPort + i).ToString());
                     // Initialise the EndPoint for the client
-                    epClient = (EndPoint)client;
+                    var epClient = (EndPoint)client;
                     byte[] byteData = sendData.GetDataStream();
                     serverSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
                 }
@@ -293,13 +318,14 @@ namespace ServerProcess
         {
             try
             {
+                DisplayMessage("[Leader] Processo " + i + " liberado para atualização");
                 // Initialise a packet object to store the data to be sent
                 Packet sendData = new Packet();
                 sendData.ReadData.Add("ChatDataIdentifier", DataIdentifier.SiteRelease);
                 sendData.ReadData.Add("ChatId", myId);
-                IPEndPoint client = IpData.CreateIPEndPoint("127.0.0.1:" + (3000 + i).ToString());
+                IPEndPoint client = IpData.CreateIPEndPoint("127.0.0.1:" + (InitialServerPort + i).ToString());
                 // Initialise the EndPoint for the client
-                epClient = (EndPoint)client;
+                var epClient = (EndPoint)client;
                 byte[] byteData = sendData.GetDataStream();
                 serverSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
             }
@@ -314,8 +340,16 @@ namespace ServerProcess
             lock (ServerQueue)
             {
                 ServerQueue.Add(id);
+                DisplayMessage("[Leader] Processo " + id + " adicionado a fila");
+                if(ServerQueue.Count == 1)
+                {
+                    var x = ServerQueue[0];
+                    ServerQueue.Clear();
+                    SendReleaseQueue(x);
+                    
+                }
             }
-            DisplayMessage("[Leader] Processo " + id + " adicionado a fila");
+            
         }
 
 
@@ -328,9 +362,9 @@ namespace ServerProcess
                 Packet sendData = new Packet();
                 sendData.ReadData.Add("ChatDataIdentifier", DataIdentifier.SiteRequest);
                 sendData.ReadData.Add("ChatId", myId);
-                IPEndPoint client = IpData.CreateIPEndPoint("127.0.0.1:" + (3000 + leaderId).ToString());
+                IPEndPoint client = IpData.CreateIPEndPoint("127.0.0.1:" + (InitialServerPort + leaderId).ToString());
                 // Initialise the EndPoint for the client
-                epClient = (EndPoint)client;
+                var epClient = (EndPoint)client;
                 byte[] byteData = sendData.GetDataStream();
                 serverSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.SendData), null);
             }

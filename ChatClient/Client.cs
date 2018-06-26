@@ -88,9 +88,9 @@ namespace ChatClient
         #endregion
 
         #region Fases
-        FaseI faseI;
-        FaseII faseII;
-        FaseIII faseIII;
+        public FaseI faseI;
+        public FaseII faseII;
+        public FaseIII faseIII;
         #endregion
         #region Constructor
 
@@ -117,6 +117,17 @@ namespace ChatClient
 
         private void btnSend_Click(object sender, EventArgs e)
         {
+            Packet sendData = new Packet();
+            sendData.ReadData.Add("ChatDataIdentifier", DataIdentifier.Message);
+            sendData.ReadData.Add("ChatName", this.name);
+            sendData.ReadData.Add("ChatMessage", "Hello World");
+
+            var client = IpData.CreateIPEndPoint("127.0.0.1:3001");
+            // Initialise the EndPoint for the client
+            epClient = (EndPoint)client;
+            var byteData = sendData.GetDataStream();
+            clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient,
+                new AsyncCallback(SendData), null);
         }
 
         private void Client_FormClosing(object sender, FormClosingEventArgs e)
@@ -186,6 +197,12 @@ namespace ChatClient
                 // Begin listening for broadcasts
                 clientSocket.BeginReceiveFrom(dataStream, 0, dataStream.Length, SocketFlags.None, ref Global.epServer, new AsyncCallback(this.ReceiveData), null);
             }
+            catch (System.Net.Sockets.SocketException ex)
+            {
+                clientSocket.Close();
+                clientSocket = null;
+                MessageBox.Show("Connection Error: Não consegui me conectar ao endereço informado", "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
             catch (Exception ex)
             {
                 MessageBox.Show("Connection Error: " + ex.Message, "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -223,10 +240,10 @@ namespace ChatClient
         {
             var t = new Thread(() =>
             {
-//                try
- //               {
-                    // Receive all data
-                    this.clientSocket.EndReceive(ar);
+                //                try
+                //               {
+                // Receive all data
+                this.clientSocket.EndReceive(ar);
 
                     // Initialise a packet object to store the received data
 
@@ -498,7 +515,7 @@ namespace ChatClient
         private void button_faseIII_Click(object sender, EventArgs e)
         {
 
-            int id = int.Parse(siteID.Text) + 3000;
+            int id = int.Parse(siteID.Text) + 30000;
             faseIII = new FaseIII(this, "127.0.0.1:" +  id.ToString());
             faseIII.Insercao();
             faseIII.Insercao();

@@ -121,16 +121,19 @@ namespace ChatClient
                     int oldleader = leaderId;
                     while (true)
                     {
-                        //Step 1 outside critical region
-                        this.Client.AtualizaUiRegiaoCritica(regiaocritica.LendoNaoCritico);
-                        Thread.Sleep(rand.Next(2000, 16000));//sleep btw 2s up to 4
-                                                             //Step 2
-                        Thread.Sleep(rand.Next(200, 400));//Delay to send packet
-                        UsrSendRequestCriticalArea(this.Client.GetClientById(leaderId));
-                        this.Client.AtualizaUiRegiaoCritica(regiaocritica.Esperando);
-                        while (AllowCriticalArea == false && oldleader == leaderId)
+                        if (leaderAlive == true)
                         {
-                            Thread.Sleep(10);
+                            //Step 1 outside critical region
+                            this.Client.AtualizaUiRegiaoCritica(regiaocritica.LendoNaoCritico);
+                            Thread.Sleep(rand.Next(2000, 16000));//sleep btw 2s up to 4
+                                                                 //Step 2
+                            Thread.Sleep(rand.Next(200, 400));//Delay to send packet
+                            UsrSendRequestCriticalArea(this.Client.GetClientById(leaderId));
+                            this.Client.AtualizaUiRegiaoCritica(regiaocritica.Esperando);
+                            while (AllowCriticalArea == false && oldleader == leaderId)
+                            {
+                                Thread.Sleep(10);
+                            }
                         }
                         if (leaderId != oldleader)
                         {
@@ -142,6 +145,7 @@ namespace ChatClient
                             QueueWait.Clear();
                             //reset
                         }
+                        else if (leaderAlive == false) ;
                         else
                         {
                             this.Client.AtualizaUiRegiaoCritica(regiaocritica.LendoCritico);
@@ -186,6 +190,11 @@ namespace ChatClient
                                 new AsyncCallback(this.Client.SendData), null);
                         }
                     }
+                    catch (System.Net.Sockets.SocketException ex)
+                    {
+                        this.Client.faseI.RequireElectionByCode();
+                        AllowCriticalArea = false;
+                    }
                     catch (Exception ex)
                     {
                         MessageBox.Show("Send Error: " + ex.Message, "UDP Client", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -213,6 +222,11 @@ namespace ChatClient
                     epClient = (EndPoint)client;
                     byte[] byteData = sendData.GetDataStream();
                     clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.Client.SendData), null);
+                }
+                catch (System.Net.Sockets.SocketException ex)
+                {
+                    this.Client.faseI.RequireElectionByCode();
+                    AllowCriticalArea = false;
                 }
                 catch (Exception ex)
                 {
@@ -243,7 +257,12 @@ namespace ChatClient
                     byte[] byteData = sendData.GetDataStream();
                     clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.Client.SendData), null);
                 }
-                catch (Exception ex)
+            catch (System.Net.Sockets.SocketException ex)
+            {
+                this.Client.faseI.RequireElectionByCode();
+                AllowCriticalArea = false;
+            }
+            catch (Exception ex)
                 {
                     MessageBox.Show("Send Error: " + ex.Message, "Fase II UserSendRequestCriticalArea", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
@@ -268,11 +287,16 @@ namespace ChatClient
                     byte[] byteData = sendData.GetDataStream();
                     clientSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None, epClient, new AsyncCallback(this.Client.SendData), null);
                 }
-                catch (Exception ex)
+                catch (System.Net.Sockets.SocketException ex)
                 {
-                    MessageBox.Show("Send Error: " + ex.Message, "Fase II UsrSendReleaseCriticalArea", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    this.Client.faseI.RequireElectionByCode();
+                    AllowCriticalArea = false;
                 }
-            }
+                catch (Exception ex)
+                    {
+                        MessageBox.Show("Send Error: " + ex.Message, "Fase II UsrSendReleaseCriticalArea", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
 
 
             #endregion

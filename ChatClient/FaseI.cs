@@ -319,5 +319,13 @@ namespace ChatClient
             t.Start();
         }
 
+        public void RequireElectionByCode()
+        {
+            //if the code crash by the lack of a coordinator, this is the function to be called.
+            leaderAlive = false;
+            leaderId = -1;
+            this.Client.DisplayMessage("*Foi detectado que o coordenador morreu, logo estou requisitando uma eleição");
+            StartElection();
+        }
     }
 }
